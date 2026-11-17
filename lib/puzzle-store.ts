@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import {
-  Move,
+  Move as PyraminxMove,
   generateInitialPieceDefinitions,
   parseMoveNotation,
   generateScramble,
@@ -10,7 +10,27 @@ import {
   PieceDefinition,
   ALL_MOVE_NOTATIONS
 } from './pyraminx-math';
+import {
+  generateInitialCubies,
+  RubiksMove,
+  parseRubiksMove,
+  generateRubiksScramble,
+  RUBIKS_FACES,
+  getCubiesInLayer,
+  RubiksFaceKey,
+  ALL_RUBIKS_MOVES
+} from './rubiks-math';
+import {
+  generateInitialMirrorCubies,
+  getMirrorCubiesInLayer
+} from './mirror-math';
+import {
+  generateInitialVoidCubies
+} from './void-math';
 import { soundManager } from './audio';
+import { ColorThemeId, COLOR_THEMES } from './puzzle-themes';
+
+export type PuzzleType = 'pyraminx' | 'rubiks' | 'mirror' | 'void';
 
 export interface PieceState {
   id: string;
@@ -20,9 +40,9 @@ export interface PieceState {
 }
 
 export interface ActiveAnimation {
-  move: Move;
+  notation: string;
   axis: THREE.Vector3;
-  targetAngle: number; // in radians: -2*PI/3 for CW, +2*PI/3 for CCW
+  targetAngle: number;
   currentAngle: number;
   movingPieceIds: string[];
   durationMs: number;
@@ -32,11 +52,12 @@ export interface ActiveAnimation {
 export type CameraViewPreset = 'isometric' | 'front' | 'right' | 'left' | 'bottom' | 'top';
 
 export interface PuzzleState {
+  puzzleType: PuzzleType;
   pieces: Map<string, PieceState>;
-  pieceDefs: PieceDefinition[];
+  pieceDefs: any[];
   activeAnimation: ActiveAnimation | null;
-  moveQueue: Move[];
-  history: Move[];
+  moveQueue: string[]; // Store notation string for flexibility
+  history: string[];
   historyIndex: number;
   moveCount: number;
   isSolved: boolean;
@@ -61,25 +82,72 @@ export interface PuzzleState {
   hoveredPieceId: string | null;
   activeVertexGizmo: number | null;
   isHelpOpen: boolean;
-  isTipsOpen: boolean; // Solver Tips / Guide drawer open
+  isTipsOpen: boolean;
   soundEnabled: boolean;
   victoryNonce: number;
+  colorTheme: ColorThemeId;
 }
 
-// Initial piece definitions
-const initialDefs = generateInitialPieceDefinitions();
+function createPieceMapForType(type: PuzzleType, themeId: ColorThemeId = 'modern'): { pieces: Map<string, PieceState>; defs: any[] } {
+  const theme = COLOR_THEMES[themeId] || COLOR_THEMES.modern;
 
-function createInitialPieceState(): Map<string, PieceState> {
-  const map = new Map<string, PieceState>();
-  for (const def of initialDefs) {
-    map.set(def.id, {
-      id: def.id,
-      position: def.homePosition.clone(),
-      quaternion: new THREE.Quaternion(),
-      homePosition: def.homePosition.clone()
-    });
+  if (type === 'pyraminx') {
+    const themeColors: Record<number, string> = {
+      0: theme.pyraminx.bottom,
+      1: theme.pyraminx.right,
+      2: theme.pyraminx.left,
+      3: theme.pyraminx.front
+    };
+    const defs = generateInitialPieceDefinitions(themeColors);
+    const map = new Map<string, PieceState>();
+    for (const def of defs) {
+      map.set(def.id, {
+        id: def.id,
+        position: def.homePosition.clone(),
+        quaternion: new THREE.Quaternion(),
+        homePosition: def.homePosition.clone()
+      });
+    }
+    return { pieces: map, defs };
+  } else if (type === 'mirror') {
+    const defs = generateInitialMirrorCubies();
+    const map = new Map<string, PieceState>();
+    for (const def of defs) {
+      map.set(def.id, {
+        id: def.id,
+        position: def.homePosition.clone(),
+        quaternion: new THREE.Quaternion(),
+        homePosition: def.homePosition.clone()
+      });
+    }
+    return { pieces: map, defs };
+  } else if (type === 'void') {
+    const themeColors: Record<RubiksFaceKey, string> = theme.rubiks;
+    const defs = generateInitialVoidCubies(themeColors);
+    const map = new Map<string, PieceState>();
+    for (const def of defs) {
+      map.set(def.id, {
+        id: def.id,
+        position: def.homePosition.clone(),
+        quaternion: new THREE.Quaternion(),
+        homePosition: def.homePosition.clone()
+      });
+    }
+    return { pieces: map, defs };
+  } else {
+    const themeColors: Record<RubiksFaceKey, string> = theme.rubiks;
+    const defs = generateInitialCubies(themeColors);
+    const map = new Map<string, PieceState>();
+    for (const def of defs) {
+      map.set(def.id, {
+        id: def.id,
+        position: def.homePosition.clone(),
+        quaternion: new THREE.Quaternion(),
+        homePosition: def.homePosition.clone()
+      });
+    }
+    return { pieces: map, defs };
   }
-  return map;
 }
 
 class PuzzleStore {
@@ -89,9 +157,12 @@ class PuzzleStore {
   private autoLayerInterval: NodeJS.Timeout | null = null;
 
   constructor() {
+    const { pieces, defs } = createPieceMapForType('pyraminx');
+
     this.state = {
-      pieces: createInitialPieceState(),
-      pieceDefs: initialDefs,
+      puzzleType: 'pyraminx',
+      pieces,
+      pieceDefs: defs,
       activeAnimation: null,
       moveQueue: [],
       history: [],
@@ -115,7 +186,8 @@ class PuzzleStore {
       isHelpOpen: false,
       isTipsOpen: false,
       soundEnabled: true,
-      victoryNonce: 0
+      victoryNonce: 0,
+      colorTheme: 'modern'
     };
 
     if (typeof window !== 'undefined') {
@@ -150,6 +222,60 @@ class PuzzleStore {
     this.state.lastUserInteractionTime = Date.now();
   }
 
+  public setPuzzleType(type: PuzzleType) {
+    this.registerUserInteraction();
+    if (this.state.puzzleType === type) return;
+
+    const { pieces, defs } = createPieceMapForType(type, this.state.colorTheme);
+
+    this.setState({
+      puzzleType: type,
+      pieces,
+      pieceDefs: defs,
+      activeAnimation: null,
+      moveQueue: [],
+      history: [],
+      historyIndex: -1,
+      moveCount: 0,
+      isSolved: true,
+      isScrambled: false,
+      timerActive: false,
+      elapsedSeconds: 0,
+      solveStartTime: null,
+      selectedPieceId: null,
+      hoveredPieceId: null,
+      cameraResetNonce: this.state.cameraResetNonce + 1
+    });
+
+    if (this.state.soundEnabled) {
+      soundManager.playClick(1.2);
+    }
+  }
+
+  public setColorTheme(themeId: ColorThemeId) {
+    this.registerUserInteraction();
+    const { pieces, defs } = createPieceMapForType(this.state.puzzleType, themeId);
+
+    // Keep existing position/quaternion of pieces
+    for (const [id, pieceState] of this.state.pieces.entries()) {
+      const fresh = pieces.get(id);
+      if (fresh) {
+        fresh.position.copy(pieceState.position);
+        fresh.quaternion.copy(pieceState.quaternion);
+      }
+    }
+
+    this.setState({
+      colorTheme: themeId,
+      pieceDefs: defs,
+      pieces
+    });
+
+    if (this.state.soundEnabled) {
+      soundManager.playClick(1.3);
+    }
+  }
+
   public setInteractingWithPiece(val: boolean) {
     this.setState({ isInteractingWithPiece: val });
   }
@@ -180,23 +306,21 @@ class PuzzleStore {
     this.setIsTipsOpen(!this.state.isTipsOpen);
   }
 
-  // Execute a multi-move algorithm string (e.g. "R' L R L'")
   public executeAlgorithm(movesStr: string) {
     this.registerUserInteraction();
     const tokens = movesStr.trim().split(/\s+/);
     for (const token of tokens) {
       if (token) {
-        try {
-          const move = parseMoveNotation(token);
-          this.enqueueMove(move);
-        } catch {
-          // Ignore invalid notation
-        }
+        this.enqueueNotation(token);
       }
     }
   }
 
-  public enqueueMove(move: Move) {
+  public doNotation(notation: string) {
+    this.enqueueNotation(notation);
+  }
+
+  public enqueueNotation(notation: string) {
     this.registerUserInteraction();
 
     const showcaseAutoRotate = false;
@@ -208,7 +332,7 @@ class PuzzleStore {
       solveStartTime = Date.now() - this.state.elapsedSeconds * 1000;
     }
 
-    const queue = [...this.state.moveQueue, move];
+    const queue = [...this.state.moveQueue, notation];
     this.setState({
       moveQueue: queue,
       showcaseAutoRotate,
@@ -218,17 +342,12 @@ class PuzzleStore {
     this.processNextMove();
   }
 
-  public doNotation(notation: string) {
-    const move = parseMoveNotation(notation);
-    this.enqueueMove(move);
-  }
-
   public processNextMove() {
     if (this.state.activeAnimation || this.state.moveQueue.length === 0) {
       return;
     }
 
-    const nextMove = this.state.moveQueue[0];
+    const nextNotation = this.state.moveQueue[0];
     const remainingQueue = this.state.moveQueue.slice(1);
 
     const currentPositions = new Map<string, THREE.Vector3>();
@@ -236,18 +355,34 @@ class PuzzleStore {
       currentPositions.set(id, piece.position.clone());
     }
 
-    const movingPieceIds = getPiecesInLayer(
-      currentPositions,
-      nextMove.vertexIndex,
-      nextMove.isTipOnly
-    );
+    let axis: THREE.Vector3;
+    let targetAngle: number;
+    let movingPieceIds: string[];
 
-    const axis = AXES[nextMove.vertexIndex];
-    const targetAngle = (nextMove.clockwise ? -1 : 1) * ((2 * Math.PI) / 3);
-    const durationMs = this.state.moveQueue.length > 3 ? 120 : 260;
+    if (this.state.puzzleType === 'pyraminx') {
+      const move = parseMoveNotation(nextNotation);
+      movingPieceIds = getPiecesInLayer(currentPositions, move.vertexIndex, move.isTipOnly);
+      axis = AXES[move.vertexIndex];
+      targetAngle = (move.clockwise ? -1 : 1) * ((2 * Math.PI) / 3);
+    } else if (this.state.puzzleType === 'mirror') {
+      const move = parseRubiksMove(nextNotation);
+      movingPieceIds = getMirrorCubiesInLayer(currentPositions, move.target);
+      axis = move.axis;
+      const baseAngle = (move.clockwise ? -1 : 1) * (Math.PI / 2);
+      targetAngle = move.double ? baseAngle * 2 : baseAngle;
+    } else {
+      // 'rubiks' or 'void'
+      const move = parseRubiksMove(nextNotation);
+      movingPieceIds = getCubiesInLayer(currentPositions, move.target);
+      axis = move.axis;
+      const baseAngle = (move.clockwise ? -1 : 1) * (Math.PI / 2);
+      targetAngle = move.double ? baseAngle * 2 : baseAngle;
+    }
+
+    const durationMs = this.state.moveQueue.length > 3 ? 110 : 250;
 
     const activeAnimation: ActiveAnimation = {
-      move: nextMove,
+      notation: nextNotation,
       axis,
       targetAngle,
       currentAngle: 0,
@@ -257,7 +392,7 @@ class PuzzleStore {
     };
 
     if (this.state.soundEnabled) {
-      soundManager.playClick(nextMove.isTipOnly ? 1.25 : 1.0);
+      soundManager.playClick(1.0);
     }
 
     this.setState({
@@ -288,13 +423,13 @@ class PuzzleStore {
     }
 
     const newHistory = this.state.history.slice(0, this.state.historyIndex + 1);
-    newHistory.push(anim.move);
+    newHistory.push(anim.notation);
     const newHistoryIndex = newHistory.length - 1;
 
     let allSolved = true;
     for (const piece of updatedPieces.values()) {
       const distToHome = piece.position.distanceTo(piece.homePosition);
-      const isIdentityQ = Math.abs(Math.abs(piece.quaternion.w) - 1.0) < 0.02;
+      const isIdentityQ = Math.abs(Math.abs(piece.quaternion.w) - 1.0) < 0.03;
       if (distToHome > 0.08 || !isIdentityQ) {
         allSolved = false;
         break;
@@ -336,20 +471,26 @@ class PuzzleStore {
     if (this.state.historyIndex < 0 || this.state.activeAnimation) return;
 
     const moveToUndo = this.state.history[this.state.historyIndex];
-    const inverseMove: Move = {
-      vertexIndex: moveToUndo.vertexIndex,
-      vertexKey: moveToUndo.vertexKey,
-      isTipOnly: moveToUndo.isTipOnly,
-      clockwise: !moveToUndo.clockwise,
-      notation: moveToUndo.clockwise
-        ? `${moveToUndo.isTipOnly ? moveToUndo.vertexKey.toLowerCase() : moveToUndo.vertexKey}'`
-        : moveToUndo.isTipOnly
-        ? moveToUndo.vertexKey.toLowerCase()
-        : moveToUndo.vertexKey
-    };
+    let inverseMove: string;
+
+    if (this.state.puzzleType === 'pyraminx') {
+      const parsed = parseMoveNotation(moveToUndo);
+      inverseMove = parsed.clockwise
+        ? `${parsed.isTipOnly ? parsed.vertexKey.toLowerCase() : parsed.vertexKey}'`
+        : parsed.isTipOnly
+        ? parsed.vertexKey.toLowerCase()
+        : parsed.vertexKey;
+    } else {
+      const parsed = parseRubiksMove(moveToUndo);
+      if (parsed.double) {
+        inverseMove = `${parsed.face}2`;
+      } else {
+        inverseMove = parsed.clockwise ? `${parsed.face}'` : parsed.face;
+      }
+    }
 
     this.setState({ historyIndex: this.state.historyIndex - 1 });
-    this.enqueueMove(inverseMove);
+    this.enqueueNotation(inverseMove);
   }
 
   public redo() {
@@ -359,12 +500,20 @@ class PuzzleStore {
     const nextIndex = this.state.historyIndex + 1;
     const move = this.state.history[nextIndex];
     this.setState({ historyIndex: nextIndex });
-    this.enqueueMove(move);
+    this.enqueueNotation(move);
   }
 
-  public scramble(moveCount: number = 14) {
+  public scramble(moveCount?: number) {
     this.registerUserInteraction();
-    const scrambleMoves = generateScramble(moveCount);
+
+    let scrambleNotations: string[];
+    if (this.state.puzzleType === 'pyraminx') {
+      const moves = generateScramble(moveCount || 14);
+      scrambleNotations = moves.map(m => m.notation);
+    } else {
+      const moves = generateRubiksScramble(moveCount || 20);
+      scrambleNotations = moves.map(m => m.notation);
+    }
 
     this.setState({
       isScrambled: true,
@@ -373,7 +522,7 @@ class PuzzleStore {
       moveCount: 0,
       solveStartTime: null,
       showcaseAutoRotate: false,
-      moveQueue: [...this.state.moveQueue, ...scrambleMoves]
+      moveQueue: [...this.state.moveQueue, ...scrambleNotations]
     });
 
     this.processNextMove();
@@ -381,8 +530,11 @@ class PuzzleStore {
 
   public resetPuzzle() {
     this.registerUserInteraction();
+    const { pieces, defs } = createPieceMapForType(this.state.puzzleType);
+
     this.setState({
-      pieces: createInitialPieceState(),
+      pieces,
+      pieceDefs: defs,
       activeAnimation: null,
       moveQueue: [],
       history: [],
@@ -401,11 +553,18 @@ class PuzzleStore {
 
   public randomRotation() {
     this.registerUserInteraction();
-    const vertexIndex = Math.floor(Math.random() * 4);
-    const isTip = Math.random() < 0.25;
-    const clockwise = Math.random() < 0.5;
-    const notation = `${isTip ? ['u', 'l', 'r', 'b'][vertexIndex] : ['U', 'L', 'R', 'B'][vertexIndex]}${clockwise ? '' : "'"}`;
-    this.doNotation(notation);
+    if (this.state.puzzleType === 'pyraminx') {
+      const vertexIndex = Math.floor(Math.random() * 4);
+      const isTip = Math.random() < 0.25;
+      const clockwise = Math.random() < 0.5;
+      const notation = `${isTip ? ['u', 'l', 'r', 'b'][vertexIndex] : ['U', 'L', 'R', 'B'][vertexIndex]}${clockwise ? '' : "'"}`;
+      this.doNotation(notation);
+    } else {
+      const faces: RubiksFaceKey[] = ['U', 'D', 'L', 'R', 'F', 'B'];
+      const f = faces[Math.floor(Math.random() * faces.length)];
+      const isPrime = Math.random() < 0.5;
+      this.doNotation(`${f}${isPrime ? "'" : ''}`);
+    }
   }
 
   public triggerCameraReset() {
@@ -463,8 +622,13 @@ class PuzzleStore {
         !this.state.activeAnimation &&
         this.state.moveQueue.length === 0
       ) {
-        const randNotation = ALL_MOVE_NOTATIONS[Math.floor(Math.random() * ALL_MOVE_NOTATIONS.length)];
-        this.doNotation(randNotation);
+        if (this.state.puzzleType === 'pyraminx') {
+          const randNotation = ALL_MOVE_NOTATIONS[Math.floor(Math.random() * ALL_MOVE_NOTATIONS.length)];
+          this.doNotation(randNotation);
+        } else {
+          const randNotation = ALL_RUBIKS_MOVES[Math.floor(Math.random() * ALL_RUBIKS_MOVES.length)];
+          this.doNotation(randNotation);
+        }
       }
     }, 2400);
   }

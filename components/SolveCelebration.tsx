@@ -18,7 +18,7 @@ export const SolveCelebration: React.FC = () => {
         const count = 200;
         const defaults = {
           origin: { y: 0.7 },
-          colors: ['#ef4444', '#2563eb', '#16a34a', '#facc15', '#ffffff']
+          colors: ['#FF2449', '#0084FF', '#00E070', '#FFD600', '#FF6F00', '#FFFFFF']
         };
 
         function fire(particleRatio: number, opts: confetti.Options) {

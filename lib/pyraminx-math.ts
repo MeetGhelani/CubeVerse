@@ -35,10 +35,10 @@ export interface FaceDefinition {
 }
 
 // 4 faces of the Pyraminx
-// Face 0: Bottom (opposite V0 - Yellow)
-// Face 1: Right (opposite V1 - Blue)
-// Face 2: Left (opposite V2 - Green)
-// Face 3: Front (opposite V3 - Red)
+// Face 0: Bottom (opposite V0 - Modern Fluorescent Yellow)
+// Face 1: Right (opposite V1 - Modern Azure Blue)
+// Face 2: Left (opposite V2 - Modern Neo-Green)
+// Face 3: Front (opposite V3 - Modern Coral Crimson)
 export const FACES: FaceDefinition[] = [
   {
     id: 0,
@@ -46,7 +46,7 @@ export const FACES: FaceDefinition[] = [
     oppositeVertex: 0,
     vertices: [1, 3, 2],
     normal: new THREE.Vector3(0, -1, 0),
-    color: '#FACC15', // Vibrant Speedcube Yellow
+    color: '#FFE500', // Modern Speedcube Fluorescent Yellow
     colorName: 'Yellow'
   },
   {
@@ -55,7 +55,7 @@ export const FACES: FaceDefinition[] = [
     oppositeVertex: 1,
     vertices: [0, 2, 3],
     normal: VERTICES[1].clone().negate().normalize(),
-    color: '#2563EB', // Vibrant Speedcube Blue
+    color: '#0084FF', // Modern Speedcube Vivid Azure Blue
     colorName: 'Blue'
   },
   {
@@ -64,7 +64,7 @@ export const FACES: FaceDefinition[] = [
     oppositeVertex: 2,
     vertices: [0, 3, 1],
     normal: VERTICES[2].clone().negate().normalize(),
-    color: '#16A34A', // Vibrant Speedcube Green
+    color: '#00E575', // Modern Speedcube Electric Mint Neo-Green
     colorName: 'Green'
   },
   {
@@ -73,7 +73,7 @@ export const FACES: FaceDefinition[] = [
     oppositeVertex: 3,
     vertices: [0, 1, 2],
     normal: VERTICES[3].clone().negate().normalize(),
-    color: '#E11D48', // Vibrant Speedcube Red
+    color: '#FF2A55', // Modern Speedcube Neon Coral Crimson
     colorName: 'Red'
   }
 ];
@@ -101,8 +101,9 @@ function faceCenter(vA: THREE.Vector3, vB: THREE.Vector3, vC: THREE.Vector3): TH
 }
 
 // Generate the 14 standard pieces and their initial 36 stickers
-export function generateInitialPieceDefinitions(): PieceDefinition[] {
+export function generateInitialPieceDefinitions(themeColors?: Record<number, string>): PieceDefinition[] {
   const pieces: PieceDefinition[] = [];
+  const getFaceColor = (fId: number) => (themeColors && themeColors[fId]) || FACES[fId].color;
 
   // 1. 4 Tip pieces (at each vertex)
   for (let i = 0; i < 4; i++) {
@@ -126,7 +127,7 @@ export function generateInitialPieceDefinitions(): PieceDefinition[] {
         faceId: face.id,
         triVertices: [pA, pB, pC],
         center: sCenter,
-        color: face.color
+        color: getFaceColor(face.id)
       });
     }
 
@@ -176,7 +177,7 @@ export function generateInitialPieceDefinitions(): PieceDefinition[] {
         faceId: face.id,
         triVertices: [p1, p2, fc],
         center: sCenter,
-        color: face.color
+        color: getFaceColor(face.id)
       });
     }
 
@@ -229,7 +230,7 @@ export function generateInitialPieceDefinitions(): PieceDefinition[] {
           faceId: face.id,
           triVertices: [p1, p2, fc],
           center: sCenter,
-          color: face.color
+          color: getFaceColor(face.id)
         });
       }
     }

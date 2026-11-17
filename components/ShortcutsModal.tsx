@@ -5,9 +5,11 @@ import { X, MousePointer, Hand, Keyboard } from 'lucide-react';
 import { usePuzzleStore, puzzleStore } from '@/lib/puzzle-store';
 
 export const ShortcutsModal: React.FC = () => {
-  const { isHelpOpen } = usePuzzleStore();
+  const { isHelpOpen, puzzleType } = usePuzzleStore();
 
   if (!isHelpOpen) return null;
+
+  const isCubic = puzzleType === 'rubiks' || puzzleType === 'mirror';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
@@ -16,7 +18,11 @@ export const ShortcutsModal: React.FC = () => {
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div>
             <h2 className="text-lg font-bold text-white tracking-wide">
-              Pyraminx Controls & Shortcuts
+              {puzzleType === 'mirror'
+                ? 'Mirror Cube Controls & Shortcuts'
+                : isCubic
+                ? "Rubik's 3×3 Controls & Shortcuts"
+                : 'Pyraminx Controls & Shortcuts'}
             </h2>
             <p className="text-xs text-neutral-400">
               Interactive 3D puzzle guide & reference
@@ -40,7 +46,7 @@ export const ShortcutsModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <span className="font-semibold text-white block">Drag on Puzzle Piece:</span>
-                <span className="text-neutral-400">Rotates the corresponding puzzle layer along the drag gesture</span>
+                <span className="text-neutral-400">Rotates the corresponding puzzle slice along the drag gesture</span>
               </div>
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <span className="font-semibold text-white block">Left-Click & Drag Background:</span>
@@ -66,7 +72,7 @@ export const ShortcutsModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <span className="font-semibold text-white block">Swipe Piece:</span>
-                <span className="text-neutral-400">Rotates selected vertex layer</span>
+                <span className="text-neutral-400">Rotates the selected layer</span>
               </div>
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <span className="font-semibold text-white block">One-Finger Drag:</span>
@@ -90,25 +96,68 @@ export const ShortcutsModal: React.FC = () => {
               <span>Keyboard Shortcuts</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-xs">
+              {isCubic ? (
+                <>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">U / Shift+U</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Up (White)</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">D / Shift+D</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Down (Yellow)</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">L / Shift+L</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Left (Orange)</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">R / Shift+R</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Right (Red)</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">F / Shift+F</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Front (Green)</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">B / Shift+B</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Back (Blue)</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">E / Shift+E</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Center Row (H)</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">U / Shift+U</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Up Layer</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">L / Shift+L</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Left Layer</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">R / Shift+R</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Right Layer</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">B / Shift+B</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Back Layer</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+                    <span className="text-neutral-300">1, 2, 3, 4</span>
+                    <span className="text-neutral-500 font-sans text-[11px]">Corner Tips</span>
+                  </div>
+                </>
+              )}
               <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">U / Shift+U</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Up Layer</span>
+                <span className="text-neutral-300">M</span>
+                <span className="text-neutral-500 font-sans text-[11px]">Toggle Turn/Orbit</span>
               </div>
               <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">L / Shift+L</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Left Layer</span>
-              </div>
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">R / Shift+R</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Right Layer</span>
-              </div>
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">B / Shift+B</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Back Layer</span>
-              </div>
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">1, 2, 3, 4</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Tip Turns</span>
+                <span className="text-neutral-300">T</span>
+                <span className="text-neutral-500 font-sans text-[11px]">Solver Tips</span>
               </div>
               <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
                 <span className="text-neutral-300">Space</span>
@@ -119,12 +168,12 @@ export const ShortcutsModal: React.FC = () => {
                 <span className="text-neutral-500 font-sans text-[11px]">Scramble</span>
               </div>
               <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">Ctrl+Z / Z</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Undo</span>
+                <span className="text-neutral-300">C</span>
+                <span className="text-neutral-500 font-sans text-[11px]">Reset Cam</span>
               </div>
               <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
-                <span className="text-neutral-300">Ctrl+Y / Y</span>
-                <span className="text-neutral-500 font-sans text-[11px]">Redo</span>
+                <span className="text-neutral-300">Z / Y</span>
+                <span className="text-neutral-500 font-sans text-[11px]">Undo / Redo</span>
               </div>
             </div>
           </div>

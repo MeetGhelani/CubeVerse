@@ -5,15 +5,18 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { PyraminxModel } from './PyraminxModel';
+import { RubiksModel } from './RubiksModel';
+import { MirrorModel } from './MirrorModel';
+import { VoidModel } from './VoidModel';
 import { usePuzzleStore, puzzleStore, CameraViewPreset } from '@/lib/puzzle-store';
 
 const PRESET_CAMERA_POSITIONS: Record<CameraViewPreset, THREE.Vector3> = {
   isometric: new THREE.Vector3(4.8, 3.6, 5.4),
-  front: new THREE.Vector3(0, 1.0, -6.6),      // Red face
-  right: new THREE.Vector3(5.8, 1.0, 3.2),     // Blue face
-  left: new THREE.Vector3(-5.8, 1.0, 3.2),     // Green face
-  bottom: new THREE.Vector3(0, -6.8, 0.01),    // Yellow face
-  top: new THREE.Vector3(0, 6.8, 0.01)         // Top apex
+  front: new THREE.Vector3(0, 0, 6.8),         // Direct front view
+  right: new THREE.Vector3(6.8, 0, 0),         // Direct right view
+  left: new THREE.Vector3(-6.8, 0, 0),         // Direct left view
+  bottom: new THREE.Vector3(0, -6.8, 0.01),    // Direct bottom view
+  top: new THREE.Vector3(0, 6.8, 0.01)         // Direct top view
 };
 
 const TARGET_POS = new THREE.Vector3(0, 0, 0);
@@ -28,7 +31,6 @@ const CameraController: React.FC = () => {
   const startPosRef = useRef(new THREE.Vector3());
   const targetPosRef = useRef(PRESET_CAMERA_POSITIONS.isometric.clone());
 
-  // Listen to preset view or reset changes
   useEffect(() => {
     if (cameraResetNonce > 0) {
       isTransitioningRef.current = true;
@@ -44,7 +46,6 @@ const CameraController: React.FC = () => {
     if (isTransitioningRef.current) {
       transitionProgressRef.current += delta * 3.0;
       const t = Math.min(1.0, transitionProgressRef.current);
-      // Smoothstep easing
       const easedT = t * t * (3 - 2 * t);
 
       camera.position.lerpVectors(startPosRef.current, targetPosRef.current, easedT);
@@ -59,9 +60,6 @@ const CameraController: React.FC = () => {
     }
   });
 
-  // Camera Orbit is DISABLED when user is actively dragging/turning a piece
-  // In 'turn' mode: orbit is disabled when interacting with piece
-  // In 'camera' mode: orbit is always enabled
   const orbitEnabled = interactionMode === 'camera' || !isInteractingWithPiece;
 
   return (
@@ -81,6 +79,8 @@ const CameraController: React.FC = () => {
 };
 
 export const PyraminxScene: React.FC = () => {
+  const { puzzleType } = usePuzzleStore();
+
   const handleDoubleClick = () => {
     puzzleStore.triggerCameraReset();
   };
@@ -90,7 +90,6 @@ export const PyraminxScene: React.FC = () => {
       className="relative w-full h-full select-none"
       onDoubleClick={handleDoubleClick}
       onPointerUp={() => {
-        // Guarantee camera controls re-enable whenever any pointer is released
         puzzleStore.setInteractingWithPiece(false);
       }}
     >
@@ -109,10 +108,8 @@ export const PyraminxScene: React.FC = () => {
           powerPreference: 'high-performance'
         }}
       >
-        {/* Ambient & Key Lighting */}
         <ambientLight intensity={0.5} />
 
-        {/* Primary Studio Key Light with Soft Shadows */}
         <directionalLight
           position={[6, 9, 6]}
           intensity={1.7}
@@ -128,46 +125,51 @@ export const PyraminxScene: React.FC = () => {
           shadow-bias={-0.00015}
         />
 
-        {/* Cool Blue Fill Light */}
         <directionalLight
           position={[-6, 4, -4]}
           intensity={0.7}
           color="#dbeafe"
         />
 
-        {/* Warm Rim / Specular Back Light */}
         <directionalLight
           position={[0, -5, -6]}
           intensity={0.5}
           color="#fef3c7"
         />
 
-        {/* Subtle Overhead Accent Light */}
         <directionalLight
           position={[0, 7, 0]}
           intensity={0.6}
           color="#ffffff"
         />
 
-        {/* Studio Environment */}
-        <Environment preset="city" environmentIntensity={0.25} />
+        <Environment
+          preset="city"
+          environmentIntensity={puzzleType === 'mirror' ? 0.85 : 0.4}
+        />
 
-        {/* Ground Contact Shadow */}
         <ContactShadows
-          position={[0, -1.65, 0]}
-          opacity={0.6}
-          scale={8.5}
+          position={[0, -1.85, 0]}
+          opacity={0.65}
+          scale={9}
           blur={1.8}
-          far={3.5}
+          far={3.8}
           resolution={1024}
           color="#000000"
         />
 
-        {/* Camera Controller */}
         <CameraController />
 
-        {/* 3D Pyraminx Model */}
-        <PyraminxModel />
+        {/* Dynamic Puzzle Model based on active selection */}
+        {puzzleType === 'pyraminx' ? (
+          <PyraminxModel />
+        ) : puzzleType === 'mirror' ? (
+          <MirrorModel />
+        ) : puzzleType === 'void' ? (
+          <VoidModel />
+        ) : (
+          <RubiksModel />
+        )}
       </Canvas>
     </div>
   );

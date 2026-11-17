@@ -4,12 +4,16 @@ import React, { useState } from 'react';
 import { Lightbulb, ChevronRight, X, Sparkles } from 'lucide-react';
 import { usePuzzleStore, puzzleStore } from '@/lib/puzzle-store';
 import { analyzePuzzleState } from '@/lib/pyraminx-solver';
+import { analyzeRubiksState } from '@/lib/rubiks-solver';
 
 export const LiveHintBanner: React.FC = () => {
-  const { pieces, isSolved } = usePuzzleStore();
+  const { puzzleType, pieces, isSolved } = usePuzzleStore();
   const [isDismissed, setIsDismissed] = useState(false);
 
-  const analysis = analyzePuzzleState(pieces, isSolved);
+  const analysis =
+    puzzleType === 'rubiks' || puzzleType === 'mirror'
+      ? analyzeRubiksState(pieces, isSolved)
+      : analyzePuzzleState(pieces, isSolved);
 
   if (isDismissed) {
     return (

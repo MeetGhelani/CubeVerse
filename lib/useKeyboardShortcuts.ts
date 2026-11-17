@@ -92,40 +92,44 @@ export function useKeyboardShortcuts() {
           puzzleStore.redo();
           break;
 
-        // Layer rotations: U, L, R, B
+        // Layer rotations: U, D, L, R, F, B, E (Center Horizontal)
         case 'u':
-          if (e.shiftKey) puzzleStore.doNotation("U'");
-          else puzzleStore.doNotation('U');
-          break;
         case 'U':
-          puzzleStore.doNotation('U');
+          puzzleStore.doNotation(e.shiftKey ? "U'" : 'U');
+          break;
+
+        case 'd':
+        case 'D':
+          puzzleStore.doNotation(e.shiftKey ? "D'" : 'D');
           break;
 
         case 'l':
-          if (e.shiftKey) puzzleStore.doNotation("L'");
-          else puzzleStore.doNotation('L');
-          break;
         case 'L':
-          puzzleStore.doNotation('L');
+          puzzleStore.doNotation(e.shiftKey ? "L'" : 'L');
           break;
 
         case 'r':
-          if (e.shiftKey) puzzleStore.doNotation("R'");
-          else puzzleStore.doNotation('R');
-          break;
         case 'R':
-          puzzleStore.doNotation('R');
+          puzzleStore.doNotation(e.shiftKey ? "R'" : 'R');
+          break;
+
+        case 'f':
+        case 'F':
+          puzzleStore.doNotation(e.shiftKey ? "F'" : 'F');
           break;
 
         case 'b':
-          if (e.shiftKey) puzzleStore.doNotation("B'");
-          else puzzleStore.doNotation('B');
-          break;
         case 'B':
-          puzzleStore.doNotation('B');
+          puzzleStore.doNotation(e.shiftKey ? "B'" : 'B');
           break;
 
-        // Number keys 1-4 for tip turns
+        case 'e':
+        case 'E':
+          // Center Horizontal Slice
+          puzzleStore.doNotation(e.shiftKey ? "E'" : 'E');
+          break;
+
+        // Number keys 1-4 for tip turns (Pyraminx)
         case '1':
           puzzleStore.doNotation(e.shiftKey ? "u'" : 'u');
           break;

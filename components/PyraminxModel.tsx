@@ -152,7 +152,22 @@ export const PyraminxModel: React.FC = () => {
 
           if (isTipCandidate || isLayerCandidate) {
             // Velocity vector at hitPoint when rotating around axis
-            const worldTangent = new THREE.Vector3().crossVectors(axis, hitPoint);
+            let worldTangent = new THREE.Vector3().crossVectors(axis, hitPoint);
+            if (worldTangent.lengthSq() < 0.04) {
+              // Hitpoint is close to axis (center piece); use displacement of piece centroid
+              const pieceState = currentPieces.get(pieceId);
+              const piecePos = pieceState?.position || hitPoint;
+              const radial = piecePos.clone().sub(axis.clone().multiplyScalar(piecePos.dot(axis)));
+              if (radial.lengthSq() > 0.01) {
+                worldTangent = new THREE.Vector3().crossVectors(axis, radial);
+              } else {
+                worldTangent = new THREE.Vector3(1, 0, 0).cross(axis);
+                if (worldTangent.lengthSq() < 0.01) {
+                  worldTangent = new THREE.Vector3(0, 0, 1).cross(axis);
+                }
+              }
+            }
+
             const p1 = hitPoint.clone().project(camera);
             const p2 = hitPoint.clone().add(worldTangent).project(camera);
 
@@ -196,7 +211,7 @@ export const PyraminxModel: React.FC = () => {
           }
         }
 
-        if (bestMove && bestDot > 0.40) {
+        if (bestMove && bestDot > 0.28) {
           dragInfo.current.hasTriggered = true;
           const notation = getMoveNotation(
             bestMove.vertexIndex,

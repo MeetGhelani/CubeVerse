@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Header } from '@/components/Header';
-import { SolveModeSelector } from '@/components/SolveModeSelector';
+import { PuzzleSelectorSidebar } from '@/components/PuzzleSelectorSidebar';
 import { VertexControls } from '@/components/VertexControls';
 import { PuzzleToolbar } from '@/components/PuzzleToolbar';
 import { ShortcutsModal } from '@/components/ShortcutsModal';
@@ -36,8 +36,8 @@ export default function Home() {
       {/* Top Header */}
       <Header />
 
-      {/* Left-Side Mode Switcher & Face View Navigator */}
-      <SolveModeSelector />
+      {/* Left-Side Vertical Puzzle Selector Sidebar */}
+      <PuzzleSelectorSidebar />
 
       {/* 3D Canvas Viewport */}
       <div className="absolute inset-0 w-full h-full z-10">

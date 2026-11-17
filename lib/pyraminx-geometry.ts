@@ -192,23 +192,21 @@ export class PyraminxMaterials {
   });
 
   public static blackBodyHoverMaterial = new THREE.MeshPhysicalMaterial({
-    color: '#222530',
-    metalness: 0.15,
-    roughness: 0.38,
-    clearcoat: 0.5,
-    clearcoatRoughness: 0.2,
-    emissive: '#1e3a8a',
-    emissiveIntensity: 0.25
+    color: '#161619',
+    metalness: 0.12,
+    roughness: 0.42,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.25,
+    reflectivity: 0.5
   });
 
   public static blackBodySelectedMaterial = new THREE.MeshPhysicalMaterial({
-    color: '#282b3a',
-    metalness: 0.2,
-    roughness: 0.35,
-    clearcoat: 0.6,
-    clearcoatRoughness: 0.15,
-    emissive: '#3b82f6',
-    emissiveIntensity: 0.45
+    color: '#161619',
+    metalness: 0.12,
+    roughness: 0.42,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.25,
+    reflectivity: 0.5
   });
 
   // Cached tile materials for the 4 faces
@@ -218,11 +216,13 @@ export class PyraminxMaterials {
     if (!this.stickerMaterialsMap.has(colorHex)) {
       const mat = new THREE.MeshPhysicalMaterial({
         color: colorHex,
-        roughness: 0.16,
-        metalness: 0.04,
-        clearcoat: 0.55,
-        clearcoatRoughness: 0.12,
-        reflectivity: 0.6
+        roughness: 0.12,
+        metalness: 0.02,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.08,
+        reflectivity: 0.8,
+        sheen: 0.3,
+        sheenColor: new THREE.Color(colorHex)
       });
       this.stickerMaterialsMap.set(colorHex, mat);
     }
