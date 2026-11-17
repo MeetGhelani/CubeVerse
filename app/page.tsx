@@ -7,6 +7,8 @@ import { SolveModeSelector } from '@/components/SolveModeSelector';
 import { VertexControls } from '@/components/VertexControls';
 import { PuzzleToolbar } from '@/components/PuzzleToolbar';
 import { ShortcutsModal } from '@/components/ShortcutsModal';
+import { SolverTipsModal } from '@/components/SolverTipsModal';
+import { LiveHintBanner } from '@/components/LiveHintBanner';
 import { SolveCelebration } from '@/components/SolveCelebration';
 import { useKeyboardShortcuts } from '@/lib/useKeyboardShortcuts';
 
@@ -34,7 +36,7 @@ export default function Home() {
       {/* Top Header */}
       <Header />
 
-      {/* Central Mode Switcher & Face View Navigator */}
+      {/* Left-Side Mode Switcher & Face View Navigator */}
       <SolveModeSelector />
 
       {/* 3D Canvas Viewport */}
@@ -45,8 +47,14 @@ export default function Home() {
       {/* Right-Side Vertex Layer Controls */}
       <VertexControls />
 
+      {/* Dynamic Live Hint & Suggestion Banner */}
+      <LiveHintBanner />
+
       {/* Bottom Floating Toolbar */}
       <PuzzleToolbar />
+
+      {/* Interactive Solver Tips & Algorithms Hub */}
+      <SolverTipsModal />
 
       {/* Guide & Shortcuts Modal */}
       <ShortcutsModal />

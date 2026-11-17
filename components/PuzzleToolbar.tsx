@@ -13,7 +13,8 @@ import {
   Layers,
   Volume2,
   VolumeX,
-  HelpCircle
+  HelpCircle,
+  Lightbulb
 } from 'lucide-react';
 import { usePuzzleStore, puzzleStore } from '@/lib/puzzle-store';
 
@@ -24,7 +25,8 @@ export const PuzzleToolbar: React.FC = () => {
     historyIndex,
     history,
     soundEnabled,
-    activeAnimation
+    activeAnimation,
+    isTipsOpen
   } = usePuzzleStore();
 
   const canUndo = historyIndex >= 0 && !activeAnimation;
@@ -33,6 +35,22 @@ export const PuzzleToolbar: React.FC = () => {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-full px-3">
       <div className="flex items-center gap-1 sm:gap-1.5 p-1.5 sm:p-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 text-white transition-all">
+        {/* Solver Tips & Suggestions Hub */}
+        <button
+          onClick={() => puzzleStore.toggleTips()}
+          title="Solver Tips & Guide (T)"
+          className={`relative p-2.5 rounded-xl transition-all duration-200 group flex items-center justify-center ${
+            isTipsOpen
+              ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-lg shadow-amber-500/20'
+              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20'
+          }`}
+        >
+          <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="sr-only">Tips</span>
+        </button>
+
+        <div className="w-[1px] h-6 bg-white/10 mx-0.5" />
+
         {/* 1. Play / Pause Showcase */}
         <button
           onClick={() => puzzleStore.toggleShowcaseAutoRotate()}

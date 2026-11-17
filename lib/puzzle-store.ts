@@ -46,7 +46,7 @@ export interface PuzzleState {
   timerActive: boolean;
 
   // Interaction & Camera Controls
-  interactionMode: 'turn' | 'camera'; // 'turn' = drag turns pieces, 'camera' = drag orbits camera
+  interactionMode: 'turn' | 'camera';
   isInteractingWithPiece: boolean;
   cameraViewPreset: CameraViewPreset | null;
   cameraResetNonce: number;
@@ -59,8 +59,9 @@ export interface PuzzleState {
   // UI & Selection
   selectedPieceId: string | null;
   hoveredPieceId: string | null;
-  activeVertexGizmo: number | null; // 0, 1, 2, 3 or null
+  activeVertexGizmo: number | null;
   isHelpOpen: boolean;
+  isTipsOpen: boolean; // Solver Tips / Guide drawer open
   soundEnabled: boolean;
   victoryNonce: number;
 }
@@ -105,13 +106,14 @@ class PuzzleStore {
       isInteractingWithPiece: false,
       cameraViewPreset: null,
       cameraResetNonce: 0,
-      showcaseAutoRotate: false, // Default to FALSE when starting so the puzzle stays completely steady for solving!
+      showcaseAutoRotate: false,
       autoLayerRotate: false,
       lastUserInteractionTime: Date.now(),
       selectedPieceId: null,
       hoveredPieceId: null,
       activeVertexGizmo: null,
       isHelpOpen: false,
+      isTipsOpen: false,
       soundEnabled: true,
       victoryNonce: 0
     };
@@ -169,14 +171,36 @@ class PuzzleStore {
     this.setState({ activeVertexGizmo: vIdx });
   }
 
-  // Enqueue a move for animated execution
+  public setIsTipsOpen(open: boolean) {
+    this.registerUserInteraction();
+    this.setState({ isTipsOpen: open });
+  }
+
+  public toggleTips() {
+    this.setIsTipsOpen(!this.state.isTipsOpen);
+  }
+
+  // Execute a multi-move algorithm string (e.g. "R' L R L'")
+  public executeAlgorithm(movesStr: string) {
+    this.registerUserInteraction();
+    const tokens = movesStr.trim().split(/\s+/);
+    for (const token of tokens) {
+      if (token) {
+        try {
+          const move = parseMoveNotation(token);
+          this.enqueueMove(move);
+        } catch {
+          // Ignore invalid notation
+        }
+      }
+    }
+  }
+
   public enqueueMove(move: Move) {
     this.registerUserInteraction();
 
-    // When a user makes a move, pause showcase auto-rotation so puzzle stays stable!
     const showcaseAutoRotate = false;
 
-    // Start timer on user move if scrambled
     let timerActive = this.state.timerActive;
     let solveStartTime = this.state.solveStartTime;
     if (this.state.isScrambled && !this.state.timerActive) {
@@ -348,7 +372,7 @@ class PuzzleStore {
       elapsedSeconds: 0,
       moveCount: 0,
       solveStartTime: null,
-      showcaseAutoRotate: false, // Ensure showcase is off during solving!
+      showcaseAutoRotate: false,
       moveQueue: [...this.state.moveQueue, ...scrambleMoves]
     });
 

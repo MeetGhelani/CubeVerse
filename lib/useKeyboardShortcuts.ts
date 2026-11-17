@@ -42,6 +42,13 @@ export function useKeyboardShortcuts() {
           puzzleStore.setInteractionMode(currentMode === 'turn' ? 'camera' : 'turn');
           break;
 
+        // Toggle Tips / Suggestions (T)
+        case 't':
+        case 'T':
+          e.preventDefault();
+          puzzleStore.toggleTips();
+          break;
+
         // Space: Toggle showcase auto rotation
         case ' ':
           e.preventDefault();
